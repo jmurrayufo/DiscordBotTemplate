@@ -1,34 +1,13 @@
 
-import discord
-import asyncio
-
 from ..Log import Log
+from ..Client import Client
 
-class Client(discord.Client):
+class ExampleModule:
 
-    # No __init__ given, just use the base classes one!
-
-    _shared_state = {}
-
-    def __init__(self, *args, **kwargs):
-        self.__dict__ = self._shared_state
-
+    def __init__(self):
         self.log = Log()
-
-        # We only init ONCE
-        if not hasattr(self, '_inited'):
-            super().__init__(*args, **kwargs)
-            self.registry = []
-            self._inited = True
-
-
-    
-    def register(self, cls):
-        """Register a class with our client.
-        """
-        #TODO: Check if this class is here or not!
-        self.registry.append(cls)
-
+        self.client = Client()
+        pass
 
     async def on_channel_create(self, channel):
         pass
@@ -75,51 +54,38 @@ class Client(discord.Client):
 
 
     async def on_message(self, message):
-        self.log.debug("Saw a message")
         pass
 
 
     async def on_message_delete(self, message):
-        self.log.debug("Saw a message get deleted")
         pass
 
 
     async def on_message_edit(self, before, after):
-        self.log.debug("Saw a message get edited")
         pass
 
 
     async def on_reaction_add(self, reaction, user):
-        self.log.debug("Saw a reaction get added")
         pass
 
 
     async def on_reaction_clear(self, message, reactions):
-        self.log.debug("Saw a reaction get cleared")
         pass
 
 
     async def on_reaction_remove(self, reaction, user):
-        self.log.debug("Saw a reaction get removed")
         pass
 
 
     async def on_ready(self):
-        self.log.debug("Ready")
-        for module in self.registry:
-            try:
-                await module.on_ready()
-            except:
-                pass
+        pass
 
 
     async def on_resumed(self, ):
-        self.log.debug("Resumed")
         pass
 
 
     async def on_server_available(self, server):
-        self.log.debug("Saw a server become available")
         pass
 
 
@@ -164,7 +130,6 @@ class Client(discord.Client):
 
 
     async def on_typing(self, channel, user, when):
-        self.log.debug("Saw some typeing")
         pass
 
 
