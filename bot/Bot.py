@@ -3,6 +3,8 @@
 import os
 import argparse
 
+from code.Client import Client
+from code.ExampleModule import ExampleModule
 from code.Log import Log
 
 parser = argparse.ArgumentParser(description='Basic Bot Demo')
@@ -20,7 +22,6 @@ log.info(args)
 
 # We break normal patterns here, and begin importing the rest of the bot after logging and parsing is done!
 
-from code.Client import Client
 
 x = Client()
 
@@ -28,7 +29,6 @@ x = Client()
 ### Register all modules here ###
 #################################
 
-from code.ExampleModule import ExampleModule
 
 x.register(ExampleModule())
 
