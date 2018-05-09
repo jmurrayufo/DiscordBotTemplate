@@ -1,1 +1,1 @@
-from . import Bot  # noqa: E265,F401
+from . import DiscordBotTemplate  # noqa: E265,F401
