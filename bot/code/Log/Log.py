@@ -17,7 +17,10 @@ class Log:
         self.name = self.args.name
         self._log = logging.getLogger(self.name)
         # This needs to be reworked into an args call
-        self._log.setLevel(logging.DEBUG)
+        if args.log_level == 'INFO':
+            self._log.setLevel(logging.INFO)
+        elif args.log_level == 'DEBUG':
+            self._log.setLevel(logging.DEBUG)
 
         formatter = logging.Formatter('{asctime} {levelname} {filename}:{funcName}:{lineno} {message}', style='{')
         ch = logging.StreamHandler()

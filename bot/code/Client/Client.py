@@ -31,7 +31,6 @@ class Client(discord.Client):
 
 
     async def on_channel_create(self, channel):
-
         self.log.debug("on_channel_create")
         for module in self.registry:
             if hasattr(module,'on_channel_create'):
