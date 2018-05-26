@@ -1,1 +1,1 @@
-from . import DiscordBotTemplate  # noqa: E265,F401
+from . import StatsBot  # noqa: E265,F401

@@ -6,6 +6,7 @@ import argparse
 from .code.Client import Client
 from .code.ExampleModule import ExampleModule
 from .code.Log import Log
+from .code.SQL import SQL
 
 parser = argparse.ArgumentParser(description='Basic Bot Demo')
 
@@ -38,6 +39,7 @@ x = Client()
 ### Register all modules here ###
 #################################
 
+x.register(SQL("stats.db"))
 x.register(ExampleModule())
 
 #################################
