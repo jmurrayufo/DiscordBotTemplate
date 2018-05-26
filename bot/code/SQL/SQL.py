@@ -46,6 +46,14 @@ class SQL(metaclass=Singleton):
         return self.conn.cursor()
 
 
+    @staticmethod
+    def dict_factory(cursor, row):
+        d = {}
+        for idx, col in enumerate(cursor.description):
+            d[col[0]] = row[idx]
+        return d
+
+
     async def on_ready(self):
         await self.table_setup()
 
@@ -174,14 +182,6 @@ class SQL(metaclass=Singleton):
         if self.cur.execute(cmd).fetchone():
             return True
         return False
-
-
-    @staticmethod
-    def dict_factory(cursor, row):
-        d = {}
-        for idx, col in enumerate(cursor.description):
-            d[col[0]] = row[idx]
-        return d
 
 
     async def table_setup(self):
