@@ -303,6 +303,40 @@ class SQL(metaclass=Singleton):
             await self.commit()
 
 
+        self.log.info("Check to see if dragons exists.")
+        if not await self.table_exists("dragons"):
+            self.log.info("Create dragons table")
+            cur = self.cur
+            cmd = """
+                CREATE TABLE IF NOT EXISTS dragons
+                (
+                    dragon_id TEXT NOT NULL,
+                    name TEXT,
+                    created_at INTEGER,
+                    hatched_on INTEGER,
+                    cared_for_by TEXT
+                )"""
+            cur.execute(cmd)
+            await self.commit()
+
+
+        self.log.info("Check to see if dragon_stat_logs exists.")
+        if not await self.table_exists("dragon_stat_logs"):
+            self.log.info("Create dragon_stat_logs table")
+            cur = self.cur
+            cmd = """
+                CREATE TABLE IF NOT EXISTS dragon_stat_logs
+                (
+                    dragon_id TEXT NOT NULL,
+                    log_date INTEGER,
+                    mass REAL,
+                    length REAL,
+                    note TEXT
+                )"""
+            cur.execute(cmd)
+            await self.commit()
+
+
 """
 Neat trick for ranks
 select  p1.*
