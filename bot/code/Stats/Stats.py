@@ -1,6 +1,7 @@
 
 import re
 import shlex
+import datetime
 
 from ..Client import Client
 from ..CommandProcessor import DiscordArgumentParser, ValidUserAction
@@ -93,129 +94,36 @@ class Stats:
     async def _cmd_stat(self, args):
         message = args.message
 
-        await self.client.send_message(message.channel, "Got the command")
+        user_id = args.user_id if args.user_id else args.message.author.id
+
+        cur = self.sql.cur
+
+        cmd = """
+            SELECT * FROM channels
+        """
+        channel_data = cur.execute(cmd).fetchall()
+        # Rekey this data
+        channel_lookup = {}
+        for channel in channel_data:
+            channel_lookup[channel['channel_id']] = channel
+
+        cmd = f"""
+            SELECT * FROM user_stats WHERE user_id={user_id}
+        """
+        user_data = cur.execute(cmd).fetchall()
+
+        msg = f"Stats for user: <@{user_id}>"
+        msg += "\n```\n"
+        for row in user_data:
+            self.log.info(row)
+            msg += f"\nChannel: {channel_lookup[row['channel_id']]['name']}\n"
+            msg += f"      Messages: {row['messages']}\n"
+            last_active = datetime.datetime.fromtimestamp(row['last_active'])
+            msg += f"   Last Active: {last_active} ({datetime.datetime.utcnow()-last_active} ago)\n"
+        msg += "\n```"
+        await self.client.send_message(args.message.author, msg)
+
 
         self.log.info("Finished stat command")
         return
-
-    ### UNUSED ###
-
-    async def on_channel_create(self, channel):
-        pass
-
-
-    async def on_channel_delete(self, channel):
-        pass
-
-
-    async def on_channel_update(self, before, after):
-        pass
-
-
-    async def on_error(self, event, *args, **kwargs):
-        pass
-
-
-    async def on_group_join(self, channel, user):
-        pass
-
-
-    async def on_group_remove(self, channel, user):
-        pass
-
-
-    async def on_member_ban(self, member):
-        pass
-
-
-    async def on_member_join(self, member):
-        pass
-
-
-    async def on_member_remove(self, member):
-        pass
-
-
-    async def on_member_unban(self, server, user):
-        pass
-
-
-    async def on_member_update(self, before, after):
-        pass
-
-
-    async def on_message_delete(self, message):
-        pass
-
-
-    async def on_message_edit(self, before, after):
-        pass
-
-
-    async def on_reaction_add(self, reaction, user):
-        pass
-
-
-    async def on_reaction_clear(self, message, reactions):
-        pass
-
-
-    async def on_reaction_remove(self, reaction, user):
-        pass
-
-
-    async def on_resumed(self, ):
-        pass
-
-
-    async def on_server_available(self, server):
-        pass
-
-
-    async def on_server_emojis_update(self, before, after):
-        pass
-
-
-    async def on_server_join(self, server):
-        pass
-
-
-    async def on_server_remove(self, server):
-        pass
-
-
-    async def on_server_role_create(self, role):
-        pass
-
-
-    async def on_server_role_delete(self, role):
-        pass
-
-
-    async def on_server_role_update(self, before, after):
-        pass
-
-
-    async def on_server_unavailable(self, server):
-        pass
-
-
-    async def on_server_update(self, before, after):
-        pass
-
-
-    async def on_socket_raw_receive(self, msg):
-        pass
-
-
-    async def on_socket_raw_send(self, payload):
-        pass
-
-
-    async def on_typing(self, channel, user, when):
-        pass
-
-
-    async def on_voice_state_update(self, before, after):
-        pass
 

@@ -65,25 +65,39 @@ class SQL(metaclass=Singleton):
         self.log.debug(f"       From: {message.author.name} ({message.author.id})")
         if message.server:
             self.log.debug(f"         On: {message.server} ({message.server.id})")
+        else:
+            # Do not save or parse private channels
+            return
 
         cur = self.cur
 
         # Check if our user exists
-        data = {}
-        data['name'] = message.author.name
-        data['display_name'] = message.author.display_name
-        data['user_id'] = message.author.id
-        data['discriminator'] = message.author.discriminator
-        data['avatar'] = message.author.avatar
-        data['bot'] = message.author.bot
-        data['avatar_url'] = message.author.avatar_url
-        data['default_avatar_url'] = message.author.default_avatar_url
-        data['mention'] = message.author.mention
-        data['created_at'] = message.author.created_at
-        data['last_active'] = datetime.datetime.utcnow().timestamp()
-        data['channel_id'] = message.channel.id
-        data['server_id'] = message.server.id if message.server else None
+        user_data = {}
+        user_data['avatar'] = message.author.avatar
+        user_data['avatar_url'] = message.author.avatar_url
+        user_data['bot'] = message.author.bot
+        user_data['channel_id'] = message.channel.id
+        user_data['created_at'] = message.author.created_at
+        user_data['default_avatar_url'] = message.author.default_avatar_url
+        user_data['discriminator'] = message.author.discriminator
+        user_data['display_name'] = message.author.display_name
+        user_data['last_active'] = datetime.datetime.utcnow().timestamp()
+        user_data['mention'] = message.author.mention
+        user_data['name'] = message.author.name
+        user_data['server_id'] = message.server.id if message.server else None
+        user_data['user_id'] = message.author.id
 
+        channel_data = {}
+        channel_data['channel_id'] = message.channel.id
+        channel_data['created_at'] = message.channel.created_at.timestamp()
+        channel_data['last_active'] = datetime.datetime.utcnow().timestamp()
+        channel_data['mention'] = message.channel.mention
+        channel_data['name'] = message.channel.name
+        channel_data['position'] = message.channel.position
+        channel_data['server_id'] = message.channel.server.id
+        channel_data['topic'] = message.channel.topic
+
+        # Check to see if the user exists
         if not cur.execute(f"SELECT user_id FROM users WHERE user_id={message.author.id}").fetchone():
             self.log.info(f"New user seen: {message.author.display_name} ({message.author.name})")
 
@@ -115,10 +129,36 @@ class SQL(metaclass=Singleton):
                     :last_active
                 )
                 """
-            self.cur.execute(cmd, data)
+            self.cur.execute(cmd, user_data)
+
+        # Check to see if the channel exists
+        if not cur.execute(f"SELECT channel_id FROM channels WHERE channel_id=:channel_id", channel_data).fetchone():
+            self.log.info(f"New channel seen: {channel_data['name']}")
+
+            cmd = """
+                INSERT OR REPLACE INTO channels 
+                (
+                    name,
+                    server_id,
+                    channel_id,
+                    topic,
+                    position,
+                    mention,
+                    created_at
+                ) VALUES (
+                    :name,
+                    :server_id,
+                    :channel_id,
+                    :topic,
+                    :position,
+                    :mention,
+                    :created_at
+                )
+                """
+            self.cur.execute(cmd, channel_data)
             # await self.commit()
 
-        if not cur.execute(f"SELECT user_id FROM user_stats WHERE user_id=:user_id AND server_id=:server_id AND channel_id=:channel_id",data).fetchone():
+        if not cur.execute(f"SELECT user_id FROM user_stats WHERE user_id=:user_id AND server_id=:server_id AND channel_id=:channel_id",user_data).fetchone():
             cmd = """
                 INSERT INTO user_stats
                 (
@@ -131,7 +171,18 @@ class SQL(metaclass=Singleton):
                     :server_id
                 )
                 """
-            self.cur.execute(cmd, data)
+            self.cur.execute(cmd, user_data)
+
+        cmd = """
+            UPDATE OR IGNORE
+                channels
+            SET 
+                messages = 1 + messages,
+                last_active = :last_active
+            WHERE
+                channel_id = :channel_id
+        """
+        self.cur.execute(cmd, channel_data)
 
         cmd = """
             UPDATE OR IGNORE
@@ -144,7 +195,7 @@ class SQL(metaclass=Singleton):
                 AND channel_id = :channel_id
                 AND server_id = :server_id
         """
-        self.cur.execute(cmd, data)
+        self.cur.execute(cmd, user_data)
         await self.commit()
 
 
@@ -214,6 +265,27 @@ class SQL(metaclass=Singleton):
             await self.commit()
 
 
+        self.log.info("Check to see if channels exists.")
+        if not await self.table_exists("channels"):
+            self.log.info("Create channels table")
+            cur = self.cur
+            cmd = """
+                CREATE TABLE IF NOT EXISTS channels
+                (
+                    name TEXT NOT NULL,
+                    server_id TEXT NOT NULL,
+                    channel_id TEXT NOT NULL UNIQUE,
+                    topic TEXT,
+                    position INTEGER,
+                    mention TEXT,
+                    created_at INTEGER,
+                    messages INTEGER DEFAULT 0,
+                    last_active INTEGER DEFAULT 0
+                )"""
+            cur.execute(cmd)
+            await self.commit()
+
+
         self.log.info("Check to see if user_stats exists.")
         if not await self.table_exists("user_stats"):
             self.log.info("Create user_stats table")
@@ -223,7 +295,7 @@ class SQL(metaclass=Singleton):
                 (
                     user_id TEXT NOT NULL,
                     channel_id TEXT,
-                    server_id TEXT,
+                    server_id TEXT DEFAULT '',
                     messages INTEGER DEFAULT 0,
                     last_active INTEGER DEFAULT 0
                 )"""
