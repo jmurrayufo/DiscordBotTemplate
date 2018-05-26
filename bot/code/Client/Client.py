@@ -23,7 +23,6 @@ class Client(discord.Client):
             self._inited = True
 
 
-
     def register(self, cls):
         """Register a class with our client.
         """
@@ -456,6 +455,56 @@ class Client(discord.Client):
 
         for idx, val in enumerate(digits):
             if ret_val[0].emoji == val:
+                return idx
+
+        return None
+
+
+    async def select_custom_prompt(self, channel, prompt_question, prompt_tuples, user=None, timeout=30, clean_up=False):  # noqa E501
+        """ Ask user to respond and pick from a list of strings.
+
+        @param channel (discord Obj): Channel to send to (This could be a user, and result in a DM!
+        @param prompt_tuples (list/tuple): List of (emoji, option_str) tuples
+        @param user (discord Obj): Valid responder (Set to None to accept any)
+        @param timeout (int/float): Seconds to wait for user response
+        @param clean_up: Should we cleanup after
+
+        @throws TimeoutError If no response is given it time.
+        """
+
+        msg = f"\n{prompt_question}\n"
+        for prompt_tuple in prompt_tuples:
+            msg += f"{prompt_tuple[0]}: {prompt_tuple[1]}\n"
+
+
+        initial_text = "Please Wait! Responses before the bot is ready are ignored!"
+
+        msg_obj = await self.send_message(channel, initial_text)
+
+        valid_responses = []
+        for prompt_tuple in prompt_tuples:
+            await self.add_reaction(msg_obj, prompt_tuple[0])
+            valid_responses.append(prompt_tuple[0])
+
+        if user:
+            await self.edit_message(msg_obj, new_content=f"<@{user.id}>{msg}")
+        else:
+            await self.edit_message(msg_obj, new_content="{msg}")
+
+        ret_val = await self.wait_for_reaction(valid_responses,
+                                               message=msg_obj,
+                                               user=user,
+                                               timeout=timeout
+                                               )
+
+        if clean_up:
+            await self.delete_message(msg_obj)
+
+        if ret_val is None:
+            raise TimeoutError("No user selection")
+
+        for idx, val in enumerate(prompt_tuples):
+            if ret_val[0].emoji == val[0]:
                 return idx
 
         return None
