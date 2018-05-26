@@ -116,13 +116,23 @@ class Stats:
         msg += "\n```\n"
         for row in user_data:
             self.log.info(row)
-            msg += f"\nChannel: {channel_lookup[row['channel_id']]['name']}\n"
-            msg += f"      Messages: {row['messages']}\n"
-            last_active = datetime.datetime.fromtimestamp(row['last_active'])
-            msg += f"   Last Active: {last_active} ({datetime.datetime.utcnow()-last_active} ago)\n"
-        msg += "\n```"
-        await self.client.send_message(args.message.author, msg)
 
+            # Check if we need to dump this message early
+            if len(msg) > 1900:
+                msg += "\n```"
+                await self.client.send_message(args.message.author, msg)
+                msg = "```\n"
+
+            msg += f"\nChannel: {channel_lookup[row['channel_id']]['name']}\n"
+            msg += f"      Messages: {row['messages']:,d}\n"
+            last_active = datetime.datetime.fromtimestamp(row['last_active']).replace(microsecond=0)
+            last_active_delta = datetime.datetime.utcnow().replace(microsecond=0)-last_active
+            msg += f"   Last Active: {last_active} ({last_active_delta} ago)\n"
+        msg += "\n```"
+
+        self.log.info(f"Message len is: {len(msg)}")
+
+        await self.client.send_message(args.message.author, msg)
 
         self.log.info("Finished stat command")
         return
