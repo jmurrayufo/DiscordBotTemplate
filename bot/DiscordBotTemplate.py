@@ -3,15 +3,19 @@
 import os
 import argparse
 
-from code.Client import Client
-from code.ExampleModule import ExampleModule
-from code.Log import Log
+from .code.Client import Client
+from .code.ExampleModule import ExampleModule
+from .code.Log import Log
 
 parser = argparse.ArgumentParser(description='Basic Bot Demo')
 
 parser.add_argument('--name',
                     default="BaseBot",
                     help='Name of this bot')
+
+parser.add_argument('--env',
+                    default="DEV",
+                    help='Name environment')
 
 parser.add_argument('--token',
                     help='Token to use to login')
