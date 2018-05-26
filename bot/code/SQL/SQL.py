@@ -3,6 +3,7 @@ import asyncio
 import sqlite3
 import pathlib
 import time
+import datetime
 
 from ..Singleton import Singleton
 from ..Log import Log
@@ -57,6 +58,9 @@ class SQL(metaclass=Singleton):
         if message.server:
             self.log.debug(f"         On: {message.server} ({message.server.id})")
 
+        cur = self.cur
+
+        # Check if our user exists
         data = {}
         data['name'] = message.author.name
         data['display_name'] = message.author.display_name
@@ -68,35 +72,73 @@ class SQL(metaclass=Singleton):
         data['default_avatar_url'] = message.author.default_avatar_url
         data['mention'] = message.author.mention
         data['created_at'] = message.author.created_at
+        data['last_active'] = datetime.datetime.utcnow().timestamp()
+        data['channel_id'] = message.channel.id
+        data['server_id'] = message.server.id if message.server else None
+
+        if not cur.execute(f"SELECT user_id FROM users WHERE user_id={message.author.id}").fetchone():
+            self.log.info(f"New user seen: {message.author.display_name} ({message.author.name})")
+
+            cmd = """
+                INSERT OR REPLACE INTO users 
+                (
+                    name,
+                    display_name,
+                    user_id,
+                    discriminator,
+                    avatar,
+                    bot,
+                    avatar_url,
+                    default_avatar_url,
+                    mention,
+                    created_at,
+                    last_active
+                ) VALUES (
+                    :name,
+                    :display_name,
+                    :user_id,
+                    :discriminator,
+                    :avatar,
+                    :bot,
+                    :avatar_url,
+                    :default_avatar_url,
+                    :mention,
+                    :created_at,
+                    :last_active
+                )
+                """
+            self.cur.execute(cmd, data)
+            # await self.commit()
+
+        if not cur.execute(f"SELECT user_id FROM user_stats WHERE user_id=:user_id AND server_id=:server_id AND channel_id=:channel_id",data).fetchone():
+            cmd = """
+                INSERT INTO user_stats
+                (
+                    user_id,
+                    channel_id,
+                    server_id
+                ) VALUES (
+                    :user_id,
+                    :channel_id,
+                    :server_id
+                )
+                """
+            self.cur.execute(cmd, data)
 
         cmd = """
-            INSERT OR REPLACE INTO users 
-            (
-                name,
-                display_name,
-                user_id,
-                discriminator,
-                avatar,
-                bot,
-                avatar_url,
-                default_avatar_url,
-                mention,
-                created_at
-            ) VALUES (
-                :name,
-                :display_name,
-                :user_id,
-                :discriminator,
-                :avatar,
-                :bot,
-                :avatar_url,
-                :default_avatar_url,
-                :mention,
-                :created_at
-            )
-            """
+            UPDATE OR IGNORE
+                user_stats
+            SET 
+                messages = 1 + messages,
+                last_active = :last_active
+            WHERE
+                user_id = :user_id
+                AND channel_id = :channel_id
+                AND server_id = :server_id
+        """
         self.cur.execute(cmd, data)
         await self.commit()
+
 
 
     async def commit(self, now=True):
@@ -172,18 +214,18 @@ class SQL(metaclass=Singleton):
             await self.commit()
 
 
-        self.log.info("Check to see if users_stats exists.")
-        if not await self.table_exists("users_stats"):
-            self.log.info("Create users_stats table")
+        self.log.info("Check to see if user_stats exists.")
+        if not await self.table_exists("user_stats"):
+            self.log.info("Create user_stats table")
             cur = self.cur
             cmd = """
-                CREATE TABLE IF NOT EXISTS users_stats
+                CREATE TABLE IF NOT EXISTS user_stats
                 (
-                    user_id TEXT NOT NULL UNIQUE,
-                    channel_id TEXT ,
+                    user_id TEXT NOT NULL,
+                    channel_id TEXT,
                     server_id TEXT,
-                    messages INTEGER,
-                    last_active INTEGER
+                    messages INTEGER DEFAULT 0,
+                    last_active INTEGER DEFAULT 0
                 )"""
             cur.execute(cmd)
             await self.commit()
