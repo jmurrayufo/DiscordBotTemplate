@@ -1,4 +1,4 @@
 
-from .DiscordArgumentParser import DiscordArgumentParser
+from .DiscordArgumentParser import DiscordArgumentParser, ValidUserAction
 
-__all__ = [DiscordArgumentParser, ]
+__all__ = [DiscordArgumentParser, ValidUserAction]

@@ -4,7 +4,7 @@ import os
 import argparse
 
 from .code.Client import Client
-from .code.ExampleModule import ExampleModule
+from .code.Stats import Stats
 from .code.Log import Log
 from .code.SQL import SQL
 
@@ -40,7 +40,7 @@ x = Client()
 #################################
 
 x.register(SQL("stats.db"))
-x.register(ExampleModule())
+x.register(Stats())
 
 #################################
 ### Register all modules here ###
