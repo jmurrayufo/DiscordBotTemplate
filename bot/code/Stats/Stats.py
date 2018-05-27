@@ -59,6 +59,11 @@ class Stats:
         sub_parser.set_defaults(subCMD='>test',
                                 cmd=self._cmd_stat)
 
+        sub_parser = sp.add_parser('>activity',
+                                   description='test something')
+        sub_parser.set_defaults(subCMD='>test',
+                                cmd=self._cmd_activity)
+
         try:
             self.log.info("Parse Arguments")
             results = parser.parse_args(shlex.split(message.content))
@@ -108,7 +113,7 @@ class Stats:
             channel_lookup[channel['channel_id']] = channel
 
         cmd = f"""
-            SELECT * FROM user_stats WHERE user_id={user_id}
+            SELECT * FROM user_channel_stats WHERE user_id={user_id}
         """
         user_data = cur.execute(cmd).fetchall()
 
@@ -120,7 +125,9 @@ class Stats:
             # Check if we need to dump this message early
             if len(msg) > 1900:
                 msg += "\n```"
-                await self.client.send_message(args.message.author, msg)
+
+                self.log.info(f"Message len is: {len(msg)}")
+                await self.client.send_message(args.message.channel, msg)
                 msg = "```\n"
 
             msg += f"\nChannel: {channel_lookup[row['channel_id']]['name']}\n"
@@ -132,7 +139,71 @@ class Stats:
 
         self.log.info(f"Message len is: {len(msg)}")
 
-        await self.client.send_message(args.message.author, msg)
+        await self.client.send_message(args.message.channel, msg)
+
+        self.log.info("Finished stat command")
+        return
+
+    async def _cmd_activity(self, args):
+        message = args.message
+
+        user_id = args.user_id if hasattr(args, "user_id") else args.message.author.id
+
+        cur = self.sql.cur
+
+        cmd = """
+            SELECT * FROM channels
+        """
+        channel_data = cur.execute(cmd).fetchall()
+        # Rekey this data
+        channel_lookup = {}
+        for channel in channel_data:
+            channel_lookup[channel['channel_id']] = channel
+
+        cmd = f"""
+            SELECT *
+            FROM user_channel_stats 
+            LEFT JOIN users ON 
+                user_channel_stats.user_id = users.user_id
+        """
+        user_stats = cur.execute(cmd).fetchall()
+
+
+        users = {}
+        for row in user_stats:
+            user_id = row['user_id']
+            if user_id not in users:
+                users[user_id] = {}
+                users[user_id]['user_id'] = user_id
+                users[user_id]['messages'] = 0
+                users[user_id]['name'] = row['name']
+                users[user_id]['display_name'] = row['display_name']
+                users[user_id]['first_seen'] = datetime.datetime.fromtimestamp(row['first_seen']).replace(microsecond=0)
+                users[user_id]['membership_days'] = (datetime.datetime.utcnow().replace(microsecond=0) - users[user_id]['first_seen']).total_seconds()
+                users[user_id]['membership_days'] /= 60*60*24
+            users[user_id]['messages'] += row['messages']
+
+        users = [users[x] for x in users]
+
+        users = sorted(users, reverse=True, key=lambda x: x['messages']/x['membership_days'])
+
+        msg = f"Global User Stats"
+        msg += "\n```\n"
+        rank = 1
+        for user in users:
+            # Check if we need to dump this message early
+            if len(msg) > 1900:
+                msg += "\n```"
+                self.log.info(f"Message len is: {len(msg)}")
+                await self.client.send_message(args.message.channel, msg)
+                msg = "```\n"
+
+            msg += f"\n{rank}) User: {user['display_name']}  Msg/Day: {user['messages']/user['membership_days']:,.0f}"
+            rank += 1
+        msg += "\n```"
+
+        self.log.info(f"Message len is: {len(msg)}")
+        await self.client.send_message(args.message.channel, msg)
 
         self.log.info("Finished stat command")
         return

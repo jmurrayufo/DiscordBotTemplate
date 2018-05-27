@@ -69,37 +69,89 @@ class SQL(metaclass=Singleton):
             # Do not save or parse private channels
             return
 
+        await self.register_user(message.author)
+        await self.register_channel(message.channel)
+
+        cur = self.cur
+
+        channel_data = {}
+        channel_data['last_active'] = datetime.datetime.utcnow().timestamp()
+        channel_data['channel_id'] = message.channel.id
+        cmd = """
+            UPDATE OR IGNORE
+                channels
+            SET 
+                messages = 1 + messages,
+                last_active = :last_active
+            WHERE
+                channel_id = :channel_id
+        """
+        self.cur.execute(cmd, channel_data)
+
+
+        user_data = {}
+        user_data['last_active'] = datetime.datetime.utcnow().timestamp()
+        user_data['user_id'] = message.author.id
+        user_data['channel_id'] = message.channel.id
+        user_data['server_id'] = message.server.id
+
+        cmd = r"""
+                SELECT user_id 
+                FROM user_channel_stats 
+                WHERE user_id=:user_id 
+                    AND server_id=:server_id 
+                    AND channel_id=:channel_id
+                """
+        if not cur.execute(cmd, user_data).fetchone():
+            cmd = """
+                INSERT INTO user_channel_stats
+                (
+                    user_id,
+                    channel_id,
+                    server_id
+                ) VALUES (
+                    :user_id,
+                    :channel_id,
+                    :server_id
+                )
+                """
+            self.cur.execute(cmd, user_data)
+
+        cmd = """
+            UPDATE OR IGNORE
+                user_channel_stats
+            SET 
+                messages = 1 + messages,
+                last_active = :last_active
+            WHERE
+                user_id = :user_id
+                AND channel_id = :channel_id
+                AND server_id = :server_id
+        """
+        self.cur.execute(cmd, user_data)
+        await self.commit()
+
+    async def register_user(self, user):
         cur = self.cur
 
         # Check if our user exists
         user_data = {}
-        user_data['avatar'] = message.author.avatar
-        user_data['avatar_url'] = message.author.avatar_url
-        user_data['bot'] = message.author.bot
-        user_data['channel_id'] = message.channel.id
-        user_data['created_at'] = message.author.created_at
-        user_data['default_avatar_url'] = message.author.default_avatar_url
-        user_data['discriminator'] = message.author.discriminator
-        user_data['display_name'] = message.author.display_name
+        user_data['avatar'] = user.avatar
+        user_data['avatar_url'] = user.avatar_url
+        user_data['bot'] = user.bot
+        user_data['created_at'] = user.created_at
+        user_data['default_avatar_url'] = user.default_avatar_url
+        user_data['discriminator'] = user.discriminator
+        user_data['display_name'] = user.display_name
         user_data['last_active'] = datetime.datetime.utcnow().timestamp()
-        user_data['mention'] = message.author.mention
-        user_data['name'] = message.author.name
-        user_data['server_id'] = message.server.id if message.server else None
-        user_data['user_id'] = message.author.id
-
-        channel_data = {}
-        channel_data['channel_id'] = message.channel.id
-        channel_data['created_at'] = message.channel.created_at.timestamp()
-        channel_data['last_active'] = datetime.datetime.utcnow().timestamp()
-        channel_data['mention'] = message.channel.mention
-        channel_data['name'] = message.channel.name
-        channel_data['position'] = message.channel.position
-        channel_data['server_id'] = message.channel.server.id
-        channel_data['topic'] = message.channel.topic
+        user_data['mention'] = user.mention
+        user_data['name'] = user.name
+        user_data['user_id'] = user.id
+        user_data['first_seen'] = datetime.datetime.utcnow().timestamp()
 
         # Check to see if the user exists
-        if not cur.execute(f"SELECT user_id FROM users WHERE user_id={message.author.id}").fetchone():
-            self.log.info(f"New user seen: {message.author.display_name} ({message.author.name})")
+        if not cur.execute(f"SELECT user_id FROM users WHERE user_id={user.id}").fetchone():
+            self.log.info(f"New user seen: {user.display_name} ({user.name})")
 
             cmd = """
                 INSERT OR REPLACE INTO users 
@@ -114,7 +166,8 @@ class SQL(metaclass=Singleton):
                     default_avatar_url,
                     mention,
                     created_at,
-                    last_active
+                    last_active,
+                    first_seen
                 ) VALUES (
                     :name,
                     :display_name,
@@ -126,10 +179,33 @@ class SQL(metaclass=Singleton):
                     :default_avatar_url,
                     :mention,
                     :created_at,
-                    :last_active
+                    :last_active,
+                    :first_seen
                 )
                 """
             self.cur.execute(cmd, user_data)
+        else:
+            cmd = """
+                UPDATE users 
+                SET last_active=:last_active
+                WHERE user_id=:user_id
+                """
+            self.cur.execute(cmd, user_data)
+
+
+    async def register_channel(self, channel):        
+        cur = self.cur
+
+
+        channel_data = {}
+        channel_data['channel_id'] = channel.id
+        channel_data['created_at'] = channel.created_at.timestamp()
+        channel_data['last_active'] = datetime.datetime.utcnow().timestamp()
+        channel_data['mention'] = channel.mention
+        channel_data['name'] = channel.name
+        channel_data['position'] = channel.position
+        channel_data['server_id'] = channel.server.id
+        channel_data['topic'] = channel.topic
 
         # Check to see if the channel exists
         if not cur.execute(f"SELECT channel_id FROM channels WHERE channel_id=:channel_id", channel_data).fetchone():
@@ -157,46 +233,6 @@ class SQL(metaclass=Singleton):
                 """
             self.cur.execute(cmd, channel_data)
             # await self.commit()
-
-        if not cur.execute(f"SELECT user_id FROM user_stats WHERE user_id=:user_id AND server_id=:server_id AND channel_id=:channel_id",user_data).fetchone():
-            cmd = """
-                INSERT INTO user_stats
-                (
-                    user_id,
-                    channel_id,
-                    server_id
-                ) VALUES (
-                    :user_id,
-                    :channel_id,
-                    :server_id
-                )
-                """
-            self.cur.execute(cmd, user_data)
-
-        cmd = """
-            UPDATE OR IGNORE
-                channels
-            SET 
-                messages = 1 + messages,
-                last_active = :last_active
-            WHERE
-                channel_id = :channel_id
-        """
-        self.cur.execute(cmd, channel_data)
-
-        cmd = """
-            UPDATE OR IGNORE
-                user_stats
-            SET 
-                messages = 1 + messages,
-                last_active = :last_active
-            WHERE
-                user_id = :user_id
-                AND channel_id = :channel_id
-                AND server_id = :server_id
-        """
-        self.cur.execute(cmd, user_data)
-        await self.commit()
 
 
 
@@ -259,7 +295,8 @@ class SQL(metaclass=Singleton):
                     default_avatar_url TEXT,
                     mention TEXT,
                     created_at INTEGER,
-                    last_active INTEGER
+                    last_active INTEGER,
+                    first_seen INTEGER
                 )"""
             cur.execute(cmd)
             await self.commit()
@@ -286,12 +323,12 @@ class SQL(metaclass=Singleton):
             await self.commit()
 
 
-        self.log.info("Check to see if user_stats exists.")
-        if not await self.table_exists("user_stats"):
-            self.log.info("Create user_stats table")
+        self.log.info("Check to see if user_channel_stats exists.")
+        if not await self.table_exists("user_channel_stats"):
+            self.log.info("Create user_channel_stats table")
             cur = self.cur
             cmd = """
-                CREATE TABLE IF NOT EXISTS user_stats
+                CREATE TABLE IF NOT EXISTS user_channel_stats
                 (
                     user_id TEXT NOT NULL,
                     channel_id TEXT,
