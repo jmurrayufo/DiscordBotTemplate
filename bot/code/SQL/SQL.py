@@ -356,11 +356,12 @@ class SQL(metaclass=Singleton):
             cmd = """
                 CREATE TABLE IF NOT EXISTS dragons
                 (
-                    dragon_id TEXT NOT NULL,
+                    dragon_id INTEGER PRIMARY KEY ASC AUTOINCREMENT,
                     name TEXT,
                     created_at INTEGER,
                     hatched_on INTEGER,
-                    cared_for_by TEXT
+                    last_updated INTEGER,
+                    user_id TEXT -- Owner
                 )"""
             cur.execute(cmd)
             await self.commit()
@@ -373,7 +374,7 @@ class SQL(metaclass=Singleton):
             cmd = """
                 CREATE TABLE IF NOT EXISTS dragon_stat_logs
                 (
-                    dragon_id TEXT NOT NULL,
+                    dragon_id INTEGER NOT NULL,
                     log_date INTEGER,
                     mass REAL,
                     length REAL,

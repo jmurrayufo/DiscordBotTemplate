@@ -1,7 +1,8 @@
 
+import asyncio
+import datetime
 import re
 import shlex
-import datetime
 
 from ..Client import Client
 from ..CommandProcessor import DiscordArgumentParser, ValidUserAction
@@ -95,35 +96,12 @@ class Dragons:
 
         return
 
-    async def _cmd_register(self, args):
-        message = args.message
-        self.log.info("Start _cmd_register command")
-
-        self.log.info(args)
-        msg = "Sorry, this command doesn't work yet!"
-        await self.client.send_message(message.channel, msg)
-
-        self.log.info("Finished _cmd_register command")
-        return
-
-
-    async def _cmd_log(self, args):
-        message = args.message
-        self.log.info("Start _cmd_log command")
-
-        self.log.info(args)
-        msg = "Sorry, this command doesn't work yet!"
-        await self.client.send_message(message.channel, msg)
-
-        self.log.info("Finished _cmd_log command")
-        return
-
 
     async def _cmd_graph(self, args):
         message = args.message
         self.log.info("Start _cmd_graph command")
-
         self.log.info(args)
+
         msg = "Sorry, this command doesn't work yet!"
         await self.client.send_message(message.channel, msg)
 
@@ -134,10 +112,133 @@ class Dragons:
     async def _cmd_list(self, args):
         message = args.message
         self.log.info("Start _cmd_list command")
-
         self.log.info(args)
+
         msg = "Sorry, this command doesn't work yet!"
         await self.client.send_message(message.channel, msg)
 
         self.log.info("Finished _cmd_list command")
+        return
+
+
+    async def _cmd_log(self, args):
+        message = args.message
+        self.log.info("Start _cmd_log command")
+        self.log.info(args)
+
+        msg = "Sorry, this command doesn't work yet!"
+        await self.client.send_message(message.channel, msg)
+
+        self.log.info("Finished _cmd_log command")
+        return
+
+
+    async def _cmd_register(self, args):
+        message = args.message
+        user = message.author
+        cur = self.sql.cur
+
+        self.log.info("Start _cmd_register command")
+        self.log.info(args)
+
+        await self.client.start_private_message(user)
+        for channel in self.client.private_channels:
+            if channel.user == user:
+                break
+            else:
+                raise RuntimeError("Couldn't find our pirvate channel, woops!")
+
+        msg = "Do you wish to register a new dragon?"
+        choice = await self.client.confirm_prompt(channel, msg)
+        if choice is not True:
+            return
+
+        await asyncio.sleep(1)
+        msg = "Okay!"
+        await self.client.send_message(channel, msg)
+        await asyncio.sleep(1)
+
+        while True:
+            msg = "What is your dragons name? (Your next message should be their full name, with no extra characters)"
+            name = await self.client.text_prompt(channel, msg, user=message.author, timeout=120)
+            await asyncio.sleep(1)
+
+            msg = f"Your dragons name is '{name}', is that correct?"
+            choice = await self.client.confirm_prompt(channel, msg)
+
+            if choice is True:
+                break
+            elif choice is False:
+                continue
+            elif choice is None:
+                return
+
+        while True:
+            msg = "When was your dragon hatched? If you don't know exactly, guess as close as you can!"\
+                  " (Format is YYYY-MM-DD, so you can answer `2018-03-25`)\n. You can say STOP to exit."
+            hatch_date = await self.client.text_prompt(channel, msg, user=message.author, timeout=300)
+
+            if hatch_date is None:
+                self.log.info("STOP encountered?")
+                return
+
+            self.log.info(f"Got user response of: {hatch_date}")
+            hatch_match = re.search(r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})", hatch_date)
+            if hatch_match is None:
+                continue
+
+            hatch_date = datetime.datetime(
+                int(hatch_match.group('year')),
+                int(hatch_match.group('month')),
+                int(hatch_match.group('day')),
+                )
+
+            await asyncio.sleep(1)
+
+            now = datetime.datetime.utcnow().replace(microsecond=0, second=0, minute=0, hour=0)
+            age = (now-hatch_date).total_seconds()/60/60/24
+
+            if age < 30:
+                age = f"{age:.0f} days"
+            elif age < 365/12*18:
+                age = f"{age/30:.1f} months"
+            else:
+                age = f"{age/365:.1f} years"
+
+            msg = f"Your dragons hatch date was '{hatch_date}' (about {age} ago!), is that correct?"
+            choice = await self.client.confirm_prompt(channel, msg)
+
+            if choice is True:
+                break
+            elif choice is False:
+                continue
+            elif choice is None:
+                return
+
+        created_at = datetime.datetime.utcnow().timestamp()
+        hatched_on = hatch_date.timestamp()
+        last_updated = datetime.datetime.utcnow().timestamp()
+        user_id = user.id
+        cmd = """
+            INSERT INTO dragons
+            (
+                name,
+                created_at,
+                hatched_on,
+                last_updated,
+                user_id
+            ) VALUES (
+                :name,
+                :created_at,
+                :hatched_on,
+                :last_updated,
+                :user_id
+            )
+        """
+        cur.execute(cmd,locals())
+        await self.sql.commit()
+
+        msg = f"{name} was registered to the DB! You can try `>dragon list` to see them!"
+
+        self.log.info("Finished _cmd_register command")
         return
