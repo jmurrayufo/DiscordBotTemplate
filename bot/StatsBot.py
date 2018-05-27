@@ -4,9 +4,10 @@ import os
 import argparse
 
 from .code.Client import Client
-from .code.Stats import Stats
+from .code.Dragons import Dragons
 from .code.Log import Log
 from .code.SQL import SQL
+from .code.Stats import Stats
 
 parser = argparse.ArgumentParser(description='Basic Bot Demo')
 
@@ -41,6 +42,7 @@ x = Client()
 
 x.register(SQL("stats.db"))
 x.register(Stats())
+x.register(Dragons())
 
 #################################
 ### Register all modules here ###

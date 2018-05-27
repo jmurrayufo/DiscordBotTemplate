@@ -43,7 +43,7 @@ class ValidUserAction(argparse.Action):
             return
 
         try:
-            value = re.search("<@(?:&|!)?(\d+)>", values).group(1)
+            value = re.search(r"<@(?:&|!)?(\d+)>", values).group(1)
             setattr(namespace, self.dest, value)
             if re.match("<@&", values):
                 setattr(namespace, "user_type", "role")

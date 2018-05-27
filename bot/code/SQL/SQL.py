@@ -57,6 +57,15 @@ class SQL(metaclass=Singleton):
     async def on_ready(self):
         await self.table_setup()
 
+        for server in self.client.servers:
+            self.log.info(f"Boot registration for {server}")
+            self.log.info(f"Register {len(server.members)}")
+            self.log.info(f"Register {len(server.channels)}")
+            for member in server.members:
+                await self.register_user(member)
+            for channel in server.channels:
+                await self.register_channel(channel)
+
         self.log.info("SQL registered to receive commands!")
 
 

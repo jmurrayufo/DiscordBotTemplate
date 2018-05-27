@@ -27,7 +27,7 @@ class Stats:
 
         self.log.debug(f"Saw message: {message.content}")
 
-        match_obj = re.match("^>", message.content)
+        match_obj = re.match("^>stat(s)?", message.content)
         if match_obj:
             # await self.log_command(message)
             self.log.info("Saw a command, handle it!")
@@ -39,15 +39,14 @@ class Stats:
         self.ready = True
 
 
-
     async def command_proc(self, message):
         """Handle specific commands, or pass to the session_manager
         """
-        parser = DiscordArgumentParser(description="A Test Command", prog="", add_help=False)
+        parser = DiscordArgumentParser(description="A Test Command", prog=">stats")
         parser.set_defaults(message=message)
         sp = parser.add_subparsers()
 
-        sub_parser = sp.add_parser('>stats',
+        sub_parser = sp.add_parser('user',
                                    description='test something')
         sub_parser.add_argument(
             "user_id",
@@ -56,17 +55,15 @@ class Stats:
             metavar="@user",
             nargs="?",
             )
-        sub_parser.set_defaults(subCMD='>test',
-                                cmd=self._cmd_stat)
+        sub_parser.set_defaults(cmd=self._cmd_user)
 
-        sub_parser = sp.add_parser('>activity',
+        sub_parser = sp.add_parser('global',
                                    description='test something')
-        sub_parser.set_defaults(subCMD='>test',
-                                cmd=self._cmd_activity)
+        sub_parser.set_defaults(cmd=self._cmd_global)
 
         try:
             self.log.info("Parse Arguments")
-            results = parser.parse_args(shlex.split(message.content))
+            results = parser.parse_args(shlex.split(message.content)[1:])
             self.log.info(results)
             if type(results) == str:
                 self.log.info("Got normal return, printing and returning")
@@ -96,7 +93,7 @@ class Stats:
 
         return
 
-    async def _cmd_stat(self, args):
+    async def _cmd_user(self, args):
         message = args.message
 
         user_id = args.user_id if args.user_id else args.message.author.id
@@ -144,7 +141,7 @@ class Stats:
         self.log.info("Finished stat command")
         return
 
-    async def _cmd_activity(self, args):
+    async def _cmd_global(self, args):
         message = args.message
 
         user_id = args.user_id if hasattr(args, "user_id") else args.message.author.id
