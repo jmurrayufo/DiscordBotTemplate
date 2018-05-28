@@ -9,6 +9,8 @@ name = "pypi"
 
 discord = "*"
 matplotlib = "*"
+python-dateutil = "*"
+requests = "*"
 
 
 [dev-packages]

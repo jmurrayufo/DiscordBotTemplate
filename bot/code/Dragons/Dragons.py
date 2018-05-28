@@ -1,11 +1,14 @@
 
 
-import numpy as np
+from dateutil.parser import parse as datetime_parser
 import asyncio
+import csv
 import datetime
-import re
-import shlex
 import io
+import numpy as np
+import re
+import requests
+import shlex
 
 from ..Client import Client
 from ..CommandProcessor import DiscordArgumentParser, ValidUserAction
@@ -52,6 +55,15 @@ class Dragons:
             prog=">dragon")
         parser.set_defaults(message=message)
         sp = parser.add_subparsers()
+
+        sub_parser = sp.add_parser('csv',
+                                   description='Graph stats from a dragon')
+        sub_parser.add_argument(
+            "--template",
+            action='store_true',
+            help="Log to previous date",
+            )
+        sub_parser.set_defaults(cmd=self._cmd_csv)
 
         sub_parser = sp.add_parser('graph',
                                    description='Graph stats from a dragon')
@@ -144,6 +156,108 @@ class Dragons:
             return
             pass
 
+        return
+
+
+    async def _cmd_csv(self, args):
+        message = args.message
+        cur = self.sql.cur
+
+        self.log.info("Start _cmd_graph command")
+        self.log.info(args)
+
+        if args.message.attachments:
+            for attachment in args.message.attachments:
+                response = requests.get(attachment['url'])
+
+                data = list(csv.DictReader(io.StringIO(response.text)))
+                ids = set()
+                try:
+                    for row in data:
+                        ids.add(str(int(row['ID'])))
+                        row['Date'] = datetime_parser(row['Date']).timestamp()
+                        row['Weight (g)'] = float(row['Weight (g)']) if row['Weight (g)'] != '' else None
+                        row['Length (cm)'] = float(row['Length (cm)']) if row['Length (cm)'] != '' else None
+                        row['Notes'] = row['Notes'] if row['Notes'] != '' else None
+                except Exception as e:
+                    msg = f"Couldn't handle csv because: {e}"
+                    await self.client.send_message(message.channel, msg)
+                    continue
+
+                # Get dragons for this user
+                cur = self.sql.cur
+                user_id = args.message.author.id
+                dragon_ids = ",".join(ids)
+                cmd = f"""
+                    SELECT *
+                    FROM dragons
+                    WHERE
+                        user_id=:user_id
+                        AND dragon_id IN ({dragon_ids})
+                """
+                dragons = cur.execute(cmd,locals()).fetchall()
+                if dragons == None or len(dragons) != len(ids):
+                    msg = f"Woops! I can't save that CSV file. I couldn't match up you, your dragon IDs and my database. Are you sure the ID column is correct, and you own all these dragons?"
+                    await self.client.send_message(message.channel, msg)
+                    continue
+
+                dragon_names = ", ".join([x['name'] for x in dragons])
+
+                question = f"About to store {len(data)} rows for {dragon_names}. Are you sure?"
+                try:
+                    choice = await self.client.confirm_prompt(args.message.channel, question, user=args.message.author, timeout=60)
+                except TimeoutError:
+                    continue
+
+                if choice is not True:
+                    continue
+
+                for row in data:
+                    dragon_id = row['ID']
+                    log_date = row['Date']
+                    mass = row['Weight (g)']
+                    length = row['Length (cm)']
+                    note = row['Notes']
+
+                    cmd = """
+                        INSERT 
+                        INTO dragon_stat_logs
+                        (
+                            dragon_id,
+                            log_date,
+                            mass,
+                            length,
+                            note
+                        ) VALUES (
+                            :dragon_id,
+                            :log_date,
+                            :mass,
+                            :length,
+                            :note
+                        )
+                    """
+                    cur.execute(cmd, locals())
+                await self.sql.commit(now=True)
+                
+
+        elif args.template:
+            fields = ["ID", "Date", "Weight (g)", "Length (cm)", "Notes"]
+            csv_file = io.StringIO()
+
+            writer = csv.DictWriter(csv_file, fieldnames=fields)
+            writer.writeheader()
+
+            csv_file.seek(0)
+
+            await self.client.send_file(message.channel, csv_file, filename=f"data_template.csv")
+
+            csv_file.close()
+
+        else:
+            msg = "You can upload a file with the comment `>dragon csv <ID>`, or call `>dragon csv --template` to get a template file!"
+            await self.client.send_message(message.channel, msg)
+
+        self.log.info("Finished _cmd_graph command")
         return
 
 
