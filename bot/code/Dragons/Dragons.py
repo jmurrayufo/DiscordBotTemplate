@@ -1,7 +1,4 @@
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 import numpy as np
 import asyncio
@@ -15,6 +12,7 @@ from ..CommandProcessor import DiscordArgumentParser, ValidUserAction
 from ..CommandProcessor.exceptions import NoValidCommands, HelpNeeded
 from ..Log import Log
 from ..SQL import SQL
+from .Grapher import Grapher
 
 
 
@@ -46,11 +44,12 @@ class Dragons:
         self.ready = True
 
 
-
     async def command_proc(self, message):
         """Handle specific commands, or pass to the session_manager
         """
-        parser = DiscordArgumentParser(description="A Test Command", prog=">dragon")
+        parser = DiscordArgumentParser(
+            description="Manage information about a dragon",
+            prog=">dragon")
         parser.set_defaults(message=message)
         sp = parser.add_subparsers()
 
@@ -129,8 +128,8 @@ class Dragons:
                 await results.cmd(results)
                 return
             else:
-                await self.client.send_message(message.channel, results)
-                msg = "Well that's funny, I don't know wha to do!"
+                # await self.client.send_message(message.channel, results)
+                msg = parser.format_help()
                 await self.client.send_message(message.channel, msg)
                 return
         except NoValidCommands as e:
@@ -155,69 +154,11 @@ class Dragons:
         self.log.info("Start _cmd_graph command")
         self.log.info(args)
 
-        dragon_id = args.id
-
-        # Lookup name of dragon given
-        cmd = """
-            SELECT *
-            FROM dragons 
-            WHERE dragon_id=:dragon_id
-        """
-        dragon_dict = cur.execute(cmd, locals()).fetchone()
-
-        if dragon_dict is None:
-            await self.client.send_message(
-                message.channel,
-                f"I couldn't find a draong with id {dragon_id}!")
-            return
-
-        cmd = """
-            SELECT *
-            FROM dragon_stat_logs 
-            WHERE dragon_id=:dragon_id
-        """
-        dragon_stats = cur.execute(cmd, locals()).fetchall()
-
-        if dragon_stats is None:
-            await self.client.send_message(
-                message.channel,
-                f"I couldn't find any logs for {dragon_dict['name']}! Maybe try the `>dragon log` command first?")
-            return
-
-        self.log.info(dragon_stats)
-
-        dragon_stats = sorted(dragon_stats, key=lambda x: x['log_date'])
-
-        x = [datetime.datetime.fromtimestamp(x['log_date']) for x in dragon_stats if x['mass'] is not None]
-        y = [x['mass'] for x in dragon_stats]
-
-        plt.figure()
-        plt.plot(x,y)
-
-        plt.title(f"{dragon_dict['name']} Mass/Time")
-        plt.ylabel("Mass (g)")
-        plt.xlabel("Time (date)")
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        buf.seek(0)
-
-        await self.client.send_file(message.channel, buf, filename="test.png")
-
-        buf.close()
-
+        g = Grapher(args)
+        await g.run()
 
         self.log.info("Finished _cmd_graph command")
         return
-        # plt.figure()
-        # plt.plot([1, 2])
-        # plt.title("test")
-        # buf = io.BytesIO()
-        # plt.savefig(buf, format='png')
-        # buf.seek(0)
-        # im = Image.open(buf)
-        # im.show()
-        # buf.close()
 
 
     async def _cmd_list(self, args):
