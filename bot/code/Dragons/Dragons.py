@@ -98,28 +98,138 @@ class Dragons:
             )
         sub_parser.add_argument(
             "--date",
-            help="Log to previous date",
             default=datetime.datetime.now(),
+            help="Log to previous date",
             type=lambda d: datetime.datetime.strptime(d, '%Y-%m-%d'),
             )
-        sub_parser.add_argument(
+
+        group = sub_parser.add_argument_group(title="Basic Stats")
+        group.add_argument(
             "--length",
             help="Length of dragon (units assumed to be centimeters unless given)",
             metavar="LENGTH",
             nargs="+",
             )
-        sub_parser.add_argument(
-            "--mass",
+        group.add_argument(
+            "--mass", "--weight",
             help="Mass of dragon (units assumed to be grams unless given)",
             metavar="MASS",
             nargs="+",
             )
+
+        group = sub_parser.add_argument_group(title="Behaviors")
+        group.add_argument(
+            "--bowel-movement",
+            action='store_true',
+            default=None,
+            help="Dragon had a bowel movement.",
+            )
+        group.add_argument(
+            "--brumation",
+            action='store_true',
+            default=None,
+            help="Dragon is brumating",
+            )
+        group.add_argument(
+            "--shedding",
+            action='store_true',
+            default=None,
+            help="Dragon is shedding",
+            )
+
+        group = sub_parser.add_argument_group(title="Care")
+        group.add_argument(
+            "--fecal-check",
+            action='store_true',
+            default=None,
+            help="Checked fecal mater for parasites",
+            )
+        group.add_argument(
+            "--new-uv-tube",
+            action='store_true',
+            default=None,
+            help="Replaced the UV tube",
+            )
+        group.add_argument(
+            "--vet-visit",
+            action='store_true',
+            default=None,
+            help="Had a vet visit",
+            )
+
+        group = sub_parser.add_argument_group(title="Feeding")
+        group.add_argument(
+            "--crickets",
+            const=1,
+            default=None,
+            help="Ate Crickets",
+            nargs="?",
+            type=int,
+            )
+        group.add_argument(
+            "--bsfl",
+            const=1,
+            default=None,
+            help="Ate Black Soldier Fly Larva",
+            nargs="?",
+            type=int,
+            )
+        group.add_argument(
+            "--dubia",
+            const=1,
+            default=None,
+            help="Ate Dubia Roaches",
+            nargs="?",
+            type=int,
+            )
+        group.add_argument(
+            "--horn-worms",
+            const=1,
+            default=None,
+            help="Ate Horn Worms",
+            nargs="?",
+            type=int,
+            )
+        group.add_argument(
+            "--meal-worms",
+            const=1,
+            default=None,
+            help="Ate Meal Worms",
+            nargs="?",
+            type=int,
+            )
+        group.add_argument(
+            "--pinkie-mouse",
+            const=1,
+            default=None,
+            help="Ate Pinkie Mince",
+            nargs="?",
+            type=int,
+            )
+        group.add_argument(
+            "--silk-worms",
+            const=1,
+            default=None,
+            help="Ate Silk Worm",
+            nargs="?",
+            type=int,
+            )
+        group.add_argument(
+            "--super-worms",
+            const=1,
+            default=None,
+            help="Ate Super Worm",
+            nargs="?",
+            type=int,
+            )
+
         sub_parser.add_argument(
             "--note",
             help="Text note to affix",
             metavar="NOTE",
             nargs="+",
             )
+
         sub_parser.set_defaults(cmd=self._cmd_log)
 
         sub_parser = sp.add_parser('register',
@@ -313,6 +423,7 @@ class Dragons:
         length = None
         note = None
         dragon_id = args.id
+        user_id = args.message.author.id
 
         if args.mass:
             mass = " ".join(args.mass)
@@ -360,25 +471,59 @@ class Dragons:
             SELECT *
             FROM dragons 
             WHERE dragon_id=:dragon_id
+                AND user_id=:user_id
         """
         dragon_dict = cur.execute(cmd, locals()).fetchone()
 
         if dragon_dict is None:
             await self.client.send_message(
                 message.channel,
-                f"I couldn't find a draong with id {dragon_id}!")
+                f"I couldn't find a draong with id {dragon_id}, owned by you!")
             return
 
         msg = "Would you like to log this?"
         msg += "\n```"
         msg += f"\n  Name: {dragon_dict['name']}"
         msg += f"\n  Date: {log_date}"
+
         if mass is not None:
-            msg += f"\n  Mass: {mass}"
+            msg += f"\n          Mass: {mass}"
         if length is not None:
-            msg += f"\nLength: {length}"
+            msg += f"\n        Length: {length}"
+
+        if args.bowel_movement is not None:
+            msg += f"\nBowel Movement: {args.bowel_movement}"
+        if args.brumation is not None:
+            msg += f"\n     Brumation: {args.brumation}"
+        if args.shedding is not None:
+            msg += f"\n      Shedding: {args.shedding}"
+
+        if args.fecal_check is not None:
+            msg += f"\n   Fecal Check: {args.fecal_check}"
+        if args.new_uv_tube is not None:
+            msg += f"\n   New UV Tube: {args.new_uv_tube}"
+        if args.vet_visit is not None:
+            msg += f"\n     Vet Visit: {args.vet_visit}"
+
+        if args.crickets is not None:
+            msg += f"\n      Crickets: {args.crickets}"            
+        if args.bsfl is not None:
+            msg += f"\n          BSFL: {args.bsfl}"            
+        if args.dubia is not None:
+            msg += f"\n  Dubia Roachs: {args.dubia}"            
+        if args.horn_worms is not None:
+            msg += f"\n    Horn Worms: {args.horn_worms}"            
+        if args.meal_worms is not None:
+            msg += f"\n    Meal Worms: {args.meal_worms}"            
+        if args.pinkie_mouse is not None:
+            msg += f"\n  Pinkie Mouse: {args.pinkie_mouse}"            
+        if args.silk_worms is not None:
+            msg += f"\n    Silk Worms: {args.silk_worms}"            
+        if args.super_worms is not None:
+            msg += f"\n   Super Worms: {args.super_worms}"
+
         if note is not None:
-            msg += f"\n  Note: {note}"
+            msg += f"\n          Note: {note}"
         msg += "\n```"
         answer = await self.client.confirm_prompt(
             message.channel, 

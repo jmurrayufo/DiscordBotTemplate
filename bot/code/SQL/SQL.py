@@ -357,6 +357,7 @@ class SQL(metaclass=Singleton):
                 CREATE TABLE IF NOT EXISTS dragons
                 (
                     dragon_id INTEGER PRIMARY KEY ASC AUTOINCREMENT,
+                    gender TEXT,
                     name TEXT,
                     created_at INTEGER,
                     hatched_on INTEGER,
@@ -376,8 +377,27 @@ class SQL(metaclass=Singleton):
                 (
                     dragon_id INTEGER NOT NULL,
                     log_date INTEGER,
-                    mass REAL,
+
                     length REAL,
+                    mass REAL,
+
+                    bowel_movement BOOLEAN,
+                    brumation BOOLEAN,
+                    fecal_check BOOLEAN,
+                    shedding BOOLEAN,
+
+                    new_uv_tube BOOLEAN,
+                    vet_visit BOOLEAN,
+
+                    crickets INTEGER,
+                    bsfl INTEGER,
+                    dubia INTEGER,
+                    horn_worms INTEGER,
+                    meal_worms INTEGER,
+                    pinkie_mouse INTEGER,
+                    silk_worms INTEGER,
+                    super_worms INTEGER,
+
                     note TEXT
                 )"""
             cur.execute(cmd)
