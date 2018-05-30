@@ -72,6 +72,23 @@ class Dragons:
             help="ID of the dragon",
             metavar="DRAGON-ID"
             )
+        group = sub_parser.add_argument_group(title="Values to Graph")
+        group.add_argument("--mass", "--weight", action='store_true')
+        group.add_argument("--length", action='store_true')
+        group.add_argument("--bowel-movement", action='store_true')
+        group.add_argument("--brumation", action='store_true')
+        group.add_argument("--shedding", action='store_true')
+        group.add_argument("--fecal-check", action='store_true')
+        group.add_argument("--new-uv-tube", action='store_true')
+        group.add_argument("--vet-visit", action='store_true')
+        group.add_argument("--crickets", action='store_true')
+        group.add_argument("--bsfl", action='store_true')
+        group.add_argument("--dubia", action='store_true')
+        group.add_argument("--horn-worms", action='store_true')
+        group.add_argument("--meal-worms", action='store_true')
+        group.add_argument("--pinkie-mouse", action='store_true')
+        group.add_argument("--silk-worms", action='store_true')
+        group.add_argument("--super-worms", action='store_true')
         sub_parser.set_defaults(cmd=self._cmd_graph)
 
         sub_parser = sp.add_parser('list',
@@ -424,6 +441,22 @@ class Dragons:
         note = None
         dragon_id = args.id
         user_id = args.message.author.id
+        bowel_movement = args.bowel_movement
+        brumation = args.brumation
+        shedding = args.shedding
+        fecal_check = args.fecal_check
+        new_uv_tube = args.new_uv_tube
+        vet_visit = args.vet_visit
+        crickets = args.crickets
+        bsfl = args.bsfl
+        dubia = args.dubia
+        horn_worms = args.horn_worms
+        meal_worms = args.meal_worms
+        pinkie_mouse = args.pinkie_mouse
+        silk_worms = args.silk_worms
+        super_worms = args.super_worms
+
+
 
         if args.mass:
             mass = " ".join(args.mass)
@@ -491,36 +524,36 @@ class Dragons:
         if length is not None:
             msg += f"\n        Length: {length}"
 
-        if args.bowel_movement is not None:
-            msg += f"\nBowel Movement: {args.bowel_movement}"
-        if args.brumation is not None:
-            msg += f"\n     Brumation: {args.brumation}"
-        if args.shedding is not None:
-            msg += f"\n      Shedding: {args.shedding}"
+        if bowel_movement is not None:
+            msg += f"\nBowel Movement: {bowel_movement}"
+        if brumation is not None:
+            msg += f"\n     Brumation: {brumation}"
+        if shedding is not None:
+            msg += f"\n      Shedding: {shedding}"
 
-        if args.fecal_check is not None:
-            msg += f"\n   Fecal Check: {args.fecal_check}"
-        if args.new_uv_tube is not None:
-            msg += f"\n   New UV Tube: {args.new_uv_tube}"
-        if args.vet_visit is not None:
-            msg += f"\n     Vet Visit: {args.vet_visit}"
+        if fecal_check is not None:
+            msg += f"\n   Fecal Check: {fecal_check}"
+        if new_uv_tube is not None:
+            msg += f"\n   New UV Tube: {new_uv_tube}"
+        if vet_visit is not None:
+            msg += f"\n     Vet Visit: {vet_visit}"
 
-        if args.crickets is not None:
-            msg += f"\n      Crickets: {args.crickets}"            
-        if args.bsfl is not None:
-            msg += f"\n          BSFL: {args.bsfl}"            
-        if args.dubia is not None:
-            msg += f"\n  Dubia Roachs: {args.dubia}"            
-        if args.horn_worms is not None:
-            msg += f"\n    Horn Worms: {args.horn_worms}"            
-        if args.meal_worms is not None:
-            msg += f"\n    Meal Worms: {args.meal_worms}"            
-        if args.pinkie_mouse is not None:
-            msg += f"\n  Pinkie Mouse: {args.pinkie_mouse}"            
-        if args.silk_worms is not None:
-            msg += f"\n    Silk Worms: {args.silk_worms}"            
-        if args.super_worms is not None:
-            msg += f"\n   Super Worms: {args.super_worms}"
+        if crickets is not None:
+            msg += f"\n      Crickets: {crickets}"            
+        if bsfl is not None:
+            msg += f"\n          BSFL: {bsfl}"            
+        if dubia is not None:
+            msg += f"\n  Dubia Roachs: {dubia}"            
+        if horn_worms is not None:
+            msg += f"\n    Horn Worms: {horn_worms}"            
+        if meal_worms is not None:
+            msg += f"\n    Meal Worms: {meal_worms}"            
+        if pinkie_mouse is not None:
+            msg += f"\n  Pinkie Mouse: {pinkie_mouse}"            
+        if silk_worms is not None:
+            msg += f"\n    Silk Worms: {silk_worms}"            
+        if super_worms is not None:
+            msg += f"\n   Super Worms: {super_worms}"
 
         if note is not None:
             msg += f"\n          Note: {note}"
@@ -542,14 +575,42 @@ class Dragons:
             (
                 dragon_id,
                 log_date,
-                mass,
                 length,
+                mass,
+                bowel_movement,
+                brumation,
+                fecal_check,
+                shedding,
+                new_uv_tube,
+                vet_visit,
+                crickets,
+                bsfl,
+                dubia,
+                horn_worms,
+                meal_worms,
+                pinkie_mouse,
+                silk_worms,
+                super_worms,
                 note
             ) VALUES (
                 :dragon_id,
                 :log_date,
-                :mass,
                 :length,
+                :mass,
+                :bowel_movement,
+                :brumation,
+                :fecal_check,
+                :shedding,
+                :new_uv_tube,
+                :vet_visit,
+                :crickets,
+                :bsfl,
+                :dubia,
+                :horn_worms,
+                :meal_worms,
+                :pinkie_mouse,
+                :silk_worms,
+                :super_worms,
                 :note
             )
         """
