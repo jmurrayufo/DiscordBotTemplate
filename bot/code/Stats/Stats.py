@@ -30,6 +30,10 @@ class Stats:
         match_obj = re.match("^>stat(s)?", message.content)
         if match_obj:
             # await self.log_command(message)
+            permissions = message.author.permissions_in(message.channel)
+            if not permissions.manage_messages:
+                self.log.info("Command only valid if user can manage messages")
+                return
             self.log.info("Saw a command, handle it!")
             await self.command_proc(message)
 
