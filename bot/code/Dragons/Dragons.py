@@ -57,13 +57,22 @@ class Dragons:
         sp = parser.add_subparsers()
 
         sub_parser = sp.add_parser('csv',
-                                   description='Graph stats from a dragon')
+                                   description='Upload csv data on your dragon')
         sub_parser.add_argument(
             "--template",
             action='store_true',
             help="Log to previous date",
             )
         sub_parser.set_defaults(cmd=self._cmd_csv)
+
+        sub_parser = sp.add_parser('edit',
+                                   description='Edit details about your dragon')
+        sub_parser.add_argument(
+            "id",
+            help="ID of the dragon, or name",
+            metavar="DRAGON-ID"
+            )
+        sub_parser.set_defaults(cmd=self._cmd_edit)
 
         sub_parser = sp.add_parser('graph',
                                    description='Graph stats from a dragon')
@@ -95,7 +104,7 @@ class Dragons:
                                    description='Log stats for your dragon')
         sub_parser.add_argument("--global",
             action='store_true',
-            help='List all dragons, not just USERS')
+            help='List all dragons, not just USERS (Not working)')
         sub_parser.add_argument(
             "user_id",
             action=ValidUserAction,
@@ -290,7 +299,7 @@ class Dragons:
         message = args.message
         cur = self.sql.cur
 
-        self.log.info("Start _cmd_graph command")
+        self.log.info("Start _cmd_csv command")
         self.log.info(args)
 
         if args.message.attachments:
@@ -384,7 +393,27 @@ class Dragons:
             msg = "You can upload a file with the comment `>dragon csv <ID>`, or call `>dragon csv --template` to get a template file!"
             await self.client.send_message(message.channel, msg)
 
-        self.log.info("Finished _cmd_graph command")
+        self.log.info("Finished _cmd_csv command")
+        return
+
+
+    async def _cmd_edit(self, args):
+        message = args.message
+        cur = self.sql.cur
+        self.log.info("Start _cmd_edit command")
+        self.log.info(args)
+
+        await self.client.start_private_message(message.author)
+        for channel in self.client.private_channels:
+            if channel.user == message.author:
+                break
+            else:
+                raise RuntimeError("Couldn't find our pirvate channel, woops!")
+
+        msg = "Sorry, this command is a WIP. Come back later!"
+        await self.client.send_message(channel, msg)
+
+        self.log.info("Finished _cmd_edit command")
         return
 
 
