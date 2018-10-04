@@ -272,11 +272,9 @@ class Dragons:
                 await self.client.send_message(message.channel, results)
                 return
             elif hasattr(results, 'cmd'):
-                # await self.client.send_message(message.channel, results)
                 await results.cmd(results)
                 return
             else:
-                # await self.client.send_message(message.channel, results)
                 msg = parser.format_help()
                 await self.client.send_message(message.channel, msg)
                 return

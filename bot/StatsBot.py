@@ -8,6 +8,7 @@ from .code.Dragons import Dragons
 from .code.Log import Log
 from .code.SQL import SQL
 from .code.Stats import Stats
+from .code.Questions import Questions
 
 parser = argparse.ArgumentParser(description='Basic Bot Demo')
 
@@ -43,6 +44,7 @@ x = Client()
 x.register(SQL("stats.db"))
 x.register(Stats())
 x.register(Dragons())
+x.register(Questions())
 
 #################################
 ### Register all modules here ###
