@@ -1,3 +1,3 @@
-# Discord Bot Template
+# Bearded Dragon Statistics Bot
 
-A quick a dirty template for making bots in discord
+Bearded dragon statistics and help bot.
