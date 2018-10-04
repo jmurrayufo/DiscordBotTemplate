@@ -43,7 +43,7 @@ class Dragons:
 
 
     async def on_ready(self):
-        self.log.info("Stats, ready to recieve commands!")
+        self.log.info("Dragons, ready to recieve commands!")
         self.ready = True
 
 
